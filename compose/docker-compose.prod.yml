@@ -1,0 +1,18 @@
+services:
+  pocketbase:
+    env_file: ../.env
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN}
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+    networks:
+      - default
+
+networks:
+  default:

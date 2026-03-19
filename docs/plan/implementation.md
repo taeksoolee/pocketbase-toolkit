@@ -1,26 +1,26 @@
 # 구현 진행 현황
 
-## Phase 1 — 기본 Docker 구성 [ ]
+## Phase 1 — 기본 Docker 구성 [x]
 
 > 목표: PocketBase를 Docker로 로컬에서 실행
 
-- [ ] `docker/Dockerfile`
-- [ ] `compose/docker-compose.yml`
-- [ ] `.env.example`
-- [ ] `Makefile` (up, down, logs, shell)
+- [x] `docker/Dockerfile`
+- [x] `compose/docker-compose.yml`
+- [x] `.env.example`
+- [x] `Makefile` (up, down, logs, shell)
 
 검증: `make up` → `http://localhost:8090/_/` 접근 가능
 
 ---
 
-## Phase 2 — Cloudflare Tunnel 연동 [ ]
+## Phase 2 — Cloudflare Tunnel 연동 [x]
 
 > 목표: 서버 포트 개방 없이 HTTPS로 외부 접근
 
-- [ ] `compose/docker-compose.prod.yml` (cloudflared + healthcheck + depends_on)
-- [ ] `compose/docker-compose.caddy.yml` + `caddy/Caddyfile` (대안)
-- [ ] `.env.example`에 `CF_TUNNEL_TOKEN` 추가
-- [ ] `Makefile` (prod-up, prod-down)
+- [x] `compose/docker-compose.prod.yml` (cloudflared + healthcheck + depends_on)
+- [x] `compose/docker-compose.caddy.yml` + `caddy/Caddyfile` (대안)
+- [x] `.env.example`에 `CF_TUNNEL_TOKEN` 추가
+- [x] `Makefile` (prod-up, prod-down)
 
 검증: `https://DOMAIN/_/` 접근 가능
 
