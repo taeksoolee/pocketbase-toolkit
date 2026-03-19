@@ -52,12 +52,13 @@
 
 ---
 
-## Phase 5 — 커스텀 훅/확장 [ ] (선택)
+## Phase 5 — 커스텀 훅/확장 [x] (선택)
 
 > 목표: PocketBase JS 훅 또는 Go 확장 지원
 
-- [ ] `pb_hooks/` 예시 파일 (이메일 발송, 유효성 검사)
-- [ ] `docker/Dockerfile.extend` (Go 커스텀 빌드)
+- [x] `pb_hooks/` 예시 파일 (이메일 발송, 유효성 검사)
+- [x] `docker/Dockerfile.extend` (Go 커스텀 빌드)
+- [x] `extend/main.go` (Go 확장 진입점 예시)
 
 ---
 
@@ -65,8 +66,8 @@
 
 | Phase | 상태 | 완료일 |
 |-------|------|--------|
-| Phase 1 | 대기 | - |
-| Phase 2 | 대기 | - |
-| Phase 3 | 대기 | - |
-| Phase 4 | 대기 | - |
-| Phase 5 | 대기 | - |
+| Phase 1 | 완료 | 2026-03-20 |
+| Phase 2 | 완료 | 2026-03-20 |
+| Phase 3 | 완료 | 2026-03-20 |
+| Phase 4 | 완료 | 2026-03-20 |
+| Phase 5 | 완료 | 2026-03-20 |
