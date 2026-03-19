@@ -14,7 +14,7 @@ RUN apk add --no-cache curl unzip && \
 
 FROM alpine:3.19
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates curl
 
 COPY --from=downloader /tmp/pocketbase/pocketbase /usr/local/bin/pocketbase
 

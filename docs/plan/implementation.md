@@ -26,15 +26,15 @@
 
 ---
 
-## Phase 3 — 백업, 복원 및 업그레이드 [ ]
+## Phase 3 — 백업, 복원 및 업그레이드 [x]
 
 > 목표: SQLite 데이터 유실 방지 + 안전한 버전 업그레이드
 
-- [ ] `scripts/backup.sh` (PocketBase API 기반, S3 옵션)
-- [ ] `scripts/restore.sh`
-- [ ] `scripts/upgrade.sh` (백업 → 버전업 → 헬스체크 → 롤백)
-- [ ] `compose/docker-compose.prod.yml`에 cron 백업 서비스 추가
-- [ ] `Makefile` (backup, restore, upgrade)
+- [x] `scripts/backup.sh` (PocketBase API 기반, S3 옵션)
+- [x] `scripts/restore.sh`
+- [x] `scripts/upgrade.sh` (백업 → 버전업 → 헬스체크 → 롤백)
+- [x] `compose/docker-compose.prod.yml`에 cron 백업 서비스 추가 (ofelia, 매일 02:00)
+- [x] `Makefile` (backup, restore, upgrade)
 
 검증: 백업 생성, 복원 후 데이터 정합성, 버전업 후 정상 동작
 

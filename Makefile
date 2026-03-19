@@ -1,4 +1,4 @@
-.PHONY: up down logs shell prod-up prod-down
+.PHONY: up down logs shell prod-up prod-down backup restore upgrade
 
 COMPOSE       = docker compose -f compose/docker-compose.yml
 COMPOSE_PROD  = docker compose -f compose/docker-compose.yml -f compose/docker-compose.prod.yml
@@ -25,3 +25,15 @@ prod-up:
 
 prod-down:
 	$(COMPOSE_PROD) down
+
+# ── 백업 / 복원 / 업그레이드 ────────────────────────────────────────────────────
+
+backup:
+	@sh scripts/backup.sh
+
+restore:
+	@sh scripts/restore.sh
+
+upgrade:
+	@if [ -z "$(VERSION)" ]; then echo "사용법: make upgrade VERSION=0.23.0"; exit 1; fi
+	@sh scripts/upgrade.sh $(VERSION)
