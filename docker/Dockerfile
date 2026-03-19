@@ -20,11 +20,11 @@ COPY --from=downloader /tmp/pocketbase/pocketbase /usr/local/bin/pocketbase
 
 RUN chmod +x /usr/local/bin/pocketbase
 
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 WORKDIR /pb
 
 EXPOSE 8090
 
-HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://localhost:8090/api/health || exit 1
-
-ENTRYPOINT ["pocketbase", "serve", "--http=0.0.0.0:8090"]
+ENTRYPOINT ["/entrypoint.sh"]
