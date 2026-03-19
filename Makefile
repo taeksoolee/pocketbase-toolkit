@@ -1,4 +1,4 @@
-.PHONY: up down logs shell prod-up prod-down backup restore upgrade
+.PHONY: up down logs shell prod-up prod-down backup restore upgrade deploy deploy-caddy
 
 COMPOSE       = docker compose -f compose/docker-compose.yml
 COMPOSE_PROD  = docker compose -f compose/docker-compose.yml -f compose/docker-compose.prod.yml
@@ -25,6 +25,14 @@ prod-up:
 
 prod-down:
 	$(COMPOSE_PROD) down
+
+# ── 배포 ────────────────────────────────────────────────────────────────────────
+
+deploy:
+	@sh scripts/deploy.sh cloudflare
+
+deploy-caddy:
+	@sh scripts/deploy.sh caddy
 
 # ── 백업 / 복원 / 업그레이드 ────────────────────────────────────────────────────
 

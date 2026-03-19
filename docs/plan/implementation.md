@@ -40,13 +40,13 @@
 
 ---
 
-## Phase 4 — 배포 자동화 [ ]
+## Phase 4 — 배포 자동화 [x]
 
 > 목표: `make deploy` 한 번으로 서버 배포
 
-- [ ] `scripts/deploy.sh` (SSH → git pull → docker compose up -d → 헬스체크)
-- [ ] `Makefile` (deploy, deploy-caddy)
-- [ ] `.github/workflows/deploy.yml` (선택: main push 시 자동 배포)
+- [x] `scripts/deploy.sh` (SSH → git pull → docker compose up -d → 헬스체크)
+- [x] `Makefile` (deploy, deploy-caddy)
+- [x] `.github/workflows/deploy.yml` (main push 시 자동 배포)
 
 검증: 로컬에서 `make deploy` 한 번으로 서버 업데이트
 
