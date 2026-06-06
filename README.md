@@ -52,9 +52,9 @@ Cloudflare 없이 VPS에 직접 배포할 때 사용한다. 서버의 공인 IP�
 
 ```bash
 cp .env.example .env
-# .env 편집 (PB_ADMIN_EMAIL, PB_ADMIN_PASSWORD)
+# .env 편집 (PB_HOST_PORT, PB_ADMIN_EMAIL, PB_ADMIN_PASSWORD)
 make up
-# http://localhost:8090/_/ 접속 → .env 계정으로 로그인
+# http://localhost:${PB_HOST_PORT:-8090}/_/ 접속 → .env 계정으로 로그인
 ```
 
 ### 프로덕션 (Cloudflare Tunnel)
@@ -147,6 +147,7 @@ pocketbase-toolkit/
 ```env
 # PocketBase
 PB_VERSION=0.22.4
+PB_HOST_PORT=8090
 PB_ADMIN_EMAIL=admin@example.com
 PB_ADMIN_PASSWORD=changeme
 
