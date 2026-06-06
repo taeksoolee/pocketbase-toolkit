@@ -66,7 +66,7 @@ ssh $DEPLOY_USER@$DEPLOY_HOST "echo ok"
 ### 최초 배포
 
 ```
-로컬 .env 설정
+GitHub Secrets/Variables 등록
      │
      ▼
 make deploy (또는 GitHub Actions)
@@ -75,7 +75,7 @@ make deploy (또는 GitHub Actions)
 SSH 접속 → 서버에 git clone
      │
      ▼
-.env 파일 서버로 전송 (최초 1회)
+.env 파일 서버로 동기화
      │
      ▼
 docker compose up -d --build
@@ -96,27 +96,26 @@ main 브랜치 push (또는 make deploy)
 SSH 접속 → git pull
      │
      ▼
-서버 .env 유지 (덮어쓰지 않음)
-     │
-     ▼
-docker compose up -d --build
+GitHub Actions: .env 동기화 후 컨테이너 재시작
+수동 배포: 서버 .env 유지 후 컨테이너 재시작
      │
      ▼
 헬스체크 통과 → 배포 완료
 ```
 
-> `.env`는 최초 배포 시에만 로컬에서 서버로 전송된다. 이후에는 서버의 `.env`를 직접 수정해야 한다.
+> GitHub Actions 배포는 Secrets/Variables로 `.env`를 생성해 서버에 강제 반영한다.
+> 수동 `make deploy`는 기본값으로 서버 `.env`를 유지하며, 서버에 `.env`가 없을 때만 전송한다.
 
 ---
 
 ## 수동 배포
 
-### .env 설정
+### 배포 환경변수 설정
 
-```env
-DEPLOY_HOST=123.456.789.0
-DEPLOY_USER=ubuntu
-DEPLOY_PATH=/opt/pocketbase
+```bash
+export DEPLOY_HOST=123.456.789.0
+export DEPLOY_USER=ubuntu
+export DEPLOY_PATH=/opt/pocketbase
 ```
 
 ### 실행
@@ -143,6 +142,22 @@ GitHub 저장소 → Settings → Secrets and variables → Actions:
 | `DEPLOY_HOST` | 서버 IP 또는 도메인 |
 | `DEPLOY_USER` | SSH 접속 계정 |
 | `DEPLOY_PATH` | 서버 배포 경로 (예: `/opt/pocketbase`) |
+| `PB_ADMIN_EMAIL` | PocketBase Admin 이메일 |
+| `PB_ADMIN_PASSWORD` | PocketBase Admin 비밀번호 |
+| `CF_TUNNEL_TOKEN` | Cloudflare Tunnel 토큰 |
+| `AWS_ACCESS_KEY_ID` | S3 백업 액세스 키 (선택) |
+| `AWS_SECRET_ACCESS_KEY` | S3 백업 시크릿 키 (선택) |
+
+### Variables 등록
+
+| Variable | 값 |
+|----------|-----|
+| `PB_VERSION` | PocketBase 버전 |
+| `PB_HOST_PORT` | 호스트 포트 |
+| `DOMAIN` | 서비스 도메인 |
+| `BACKUP_S3_BUCKET` | 백업 버킷 (선택) |
+| `BACKUP_S3_REGION` | 백업 리전 (선택) |
+| `BACKUP_RETENTION_DAYS` | 백업 보관일 |
 
 ### 트리거
 
@@ -157,7 +172,7 @@ GitHub → Actions 탭에서 실행 결과 확인 가능.
 
 ### Caddy 모드로 변경
 
-`.github/workflows/deploy.yml`에서 배포 명령을 수정한다:
+`.github/workflows/ci-cd.yml`에서 배포 명령을 수정한다:
 
 ```yaml
 - name: 배포 실행

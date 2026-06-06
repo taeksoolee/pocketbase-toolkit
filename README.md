@@ -13,7 +13,7 @@ PocketBase를 Docker 기반으로 운영하기 위한 배포 템플릿이다.
 
 - 기본 배포 경로는 Cloudflare Tunnel 기반이며 서버 포트 개방 없이 HTTPS 노출 가능
 - Admin 계정은 컨테이너 시작 시 자동 생성하지 않고, 명령으로 명시적으로 동기화
-- 배포 자동화는 GitHub Actions에서 수행하며, 서버의 `.env`를 기준으로 환경 유지
+- 배포 자동화는 GitHub Actions에서 수행하며, Secrets/Variables로 `.env`를 생성해 서버에 반영
 - 일반 배포/재배포는 볼륨을 삭제하지 않으므로 PocketBase 데이터가 유지됨
 
 ---
@@ -26,17 +26,29 @@ PocketBase를 Docker 기반으로 운영하기 위한 배포 템플릿이다.
 2. 포크 저장소를 private로 전환
 3. 서버 1대 준비 (Docker/Compose 설치)
 
-### 2) 최초 1회 배포 (환경 안착)
+### 2) GitHub Actions 환경값 등록
+
+포크 저장소의 `Settings -> Secrets and variables -> Actions`에 값을 등록한다.
+
+- Secrets: `DEPLOY_SSH_KEY`, `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_PATH`, `PB_ADMIN_EMAIL`, `PB_ADMIN_PASSWORD`, `CF_TUNNEL_TOKEN`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+- Variables: `PB_VERSION`, `PB_HOST_PORT`, `DOMAIN`, `BACKUP_S3_BUCKET`, `BACKUP_S3_REGION`, `BACKUP_RETENTION_DAYS`
+
+### 3) 선택: 수동 배포로 서버 초기화
 
 ```bash
 cp .env.example .env
-# .env에 CF_TUNNEL_TOKEN, DOMAIN, DEPLOY_HOST, DEPLOY_USER 등 입력
+# .env에 런타임 값(CF_TUNNEL_TOKEN, DOMAIN, PB_ADMIN_EMAIL, PB_ADMIN_PASSWORD 등) 입력
+export DEPLOY_HOST=server.example.com
+export DEPLOY_USER=ubuntu
+export DEPLOY_PATH=/opt/pocketbase
 make deploy
 ```
 
-최초 1회 배포에서 서버에 `.env`가 전달되고, 이후 자동 배포는 서버의 `.env`를 계속 사용한다.
+GitHub Actions 배포는 매 실행 시 Secrets/Variables로 `.env`를 생성해 서버로 동기화한다.
+수동 `make deploy`는 기본값으로 서버 `.env`를 유지하며, 서버에 `.env`가 없을 때만 로컬 `.env`를 전송한다.
+CI만 사용할 경우 이 단계는 건너뛰고 `main` 브랜치에 push하여 자동 배포를 시작할 수 있다.
 
-### 3) Admin 계정 동기화
+### 4) Admin 계정 동기화
 
 ```bash
 make sync-admin
@@ -44,7 +56,7 @@ make sync-admin
 make up-sync-admin
 ```
 
-### 4) 이후 운영
+### 5) 이후 운영
 
 - 포크 저장소의 `main`에 push하면 CI/CD가 자동 배포
 - 업스트림 원본 저장소 변경을 포크에 동기화하면 동일하게 자동 배포
@@ -135,7 +147,10 @@ make sync-admin
 
 ```bash
 cp .env.example .env
-# .env에 CF_TUNNEL_TOKEN, DOMAIN, DEPLOY_HOST, DEPLOY_USER 입력
+# .env에 런타임 값(CF_TUNNEL_TOKEN, DOMAIN, PB_ADMIN_EMAIL, PB_ADMIN_PASSWORD 등) 입력
+export DEPLOY_HOST=server.example.com
+export DEPLOY_USER=ubuntu
+export DEPLOY_PATH=/opt/pocketbase
 make deploy
 # https://DOMAIN/_/
 ```
@@ -144,7 +159,11 @@ make deploy
 
 ```bash
 cp .env.example .env
-# .env에 DOMAIN, DEPLOY_HOST, DEPLOY_USER 입력 / 서버 80/443 포트 개방
+# .env에 런타임 값(DOMAIN, PB_ADMIN_EMAIL, PB_ADMIN_PASSWORD 등) 입력
+export DEPLOY_HOST=server.example.com
+export DEPLOY_USER=ubuntu
+export DEPLOY_PATH=/opt/pocketbase
+# 서버 80/443 포트 개방
 make deploy-caddy
 # https://DOMAIN/_/
 ```
@@ -168,8 +187,22 @@ main push -> lint + Docker 빌드 검증 -> 자동 배포
 - `DEPLOY_HOST`: 서버 IP 또는 도메인
 - `DEPLOY_USER`: SSH 접속 계정
 - `DEPLOY_PATH`: 서버 배포 경로 (예: `/opt/pocketbase`)
+- `PB_ADMIN_EMAIL`: PocketBase Admin 이메일
+- `PB_ADMIN_PASSWORD`: PocketBase Admin 비밀번호
+- `CF_TUNNEL_TOKEN`: Cloudflare Tunnel 토큰
+- `AWS_ACCESS_KEY_ID`: S3 백업 액세스 키 (선택)
+- `AWS_SECRET_ACCESS_KEY`: S3 백업 시크릿 키 (선택)
 
-`CF_TUNNEL_TOKEN` 등 앱 설정값은 최초 배포 시 서버 `.env`에 반영되며, 이후 서버 `.env`를 유지해도 된다.
+### GitHub Variables
+
+- `PB_VERSION`: PocketBase 버전
+- `PB_HOST_PORT`: 호스트 포트
+- `DOMAIN`: 서비스 도메인
+- `BACKUP_S3_BUCKET`: 백업 버킷 (선택)
+- `BACKUP_S3_REGION`: 백업 리전 (선택)
+- `BACKUP_RETENTION_DAYS`: 백업 보관일
+
+자동 배포 시 워크플로우가 위 값으로 `.env`를 생성해 서버에 동기화한다.
 
 ### 업스트림 반영
 
@@ -235,11 +268,20 @@ BACKUP_S3_REGION=
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
 BACKUP_RETENTION_DAYS=7
+```
 
-# 배포
-DEPLOY_HOST=
-DEPLOY_USER=
-DEPLOY_PATH=/opt/pocketbase
+자동 배포 기준 분리:
+
+- GitHub Secrets: `DEPLOY_SSH_KEY`, `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_PATH`, `PB_ADMIN_EMAIL`, `PB_ADMIN_PASSWORD`, `CF_TUNNEL_TOKEN`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+- GitHub Variables: `PB_VERSION`, `PB_HOST_PORT`, `DOMAIN`, `BACKUP_S3_BUCKET`, `BACKUP_S3_REGION`, `BACKUP_RETENTION_DAYS`
+
+수동 배포 시에는 `.env`에 런타임 값을 설정하고, 배포 타깃(서버 정보)은 셸 환경변수로 지정한다:
+
+```bash
+export DEPLOY_HOST=server.example.com
+export DEPLOY_USER=ubuntu
+export DEPLOY_PATH=/opt/pocketbase
+make deploy
 ```
 
 운영 권장:

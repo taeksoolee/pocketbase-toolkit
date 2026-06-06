@@ -3,12 +3,17 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+FORCE_SYNC_ENV="${FORCE_SYNC_ENV:-0}"
 
-if [ -f "$ROOT_DIR/.env" ]; then
-  set -a
-  . "$ROOT_DIR/.env"
-  set +a
+if [ ! -f "$ROOT_DIR/.env" ]; then
+  echo "[deploy] $ROOT_DIR/.env 파일이 없습니다."
+  echo "[deploy] 로컬 배포는 .env를 만들고, CI 배포는 워크플로우에서 .env 생성 단계를 확인하세요."
+  exit 1
 fi
+
+set -a
+. "$ROOT_DIR/.env"
+set +a
 
 # 배포 모드: cloudflare(기본) | caddy
 DEPLOY_MODE="${1:-cloudflare}"
@@ -35,12 +40,17 @@ ssh "$SSH_TARGET" "
   fi
 "
 
-# .env 파일 전송 (서버에 없는 경우)
+# .env 파일 동기화
 echo "[deploy] .env 파일 동기화 중..."
-ssh "$SSH_TARGET" "[ -f '$DEPLOY_PATH/.env' ] && echo 'skip' || echo 'missing'" | grep -q "missing" && \
-  scp "$ROOT_DIR/.env" "$SSH_TARGET:$DEPLOY_PATH/.env" && \
-  echo "[deploy] .env 전송 완료" || \
-  echo "[deploy] .env 이미 존재 — 서버 파일 유지"
+if [ "$FORCE_SYNC_ENV" = "1" ]; then
+  scp "$ROOT_DIR/.env" "$SSH_TARGET:$DEPLOY_PATH/.env"
+  echo "[deploy] .env 강제 동기화 완료"
+else
+  ssh "$SSH_TARGET" "[ -f '$DEPLOY_PATH/.env' ] && echo 'skip' || echo 'missing'" | grep -q "missing" && \
+    scp "$ROOT_DIR/.env" "$SSH_TARGET:$DEPLOY_PATH/.env" && \
+    echo "[deploy] .env 전송 완료" || \
+    echo "[deploy] .env 이미 존재 — 서버 파일 유지"
+fi
 
 # 컨테이너 재시작
 echo "[deploy] 컨테이너 재시작 중..."
@@ -61,10 +71,11 @@ ssh "$SSH_TARGET" "
 echo "[deploy] 헬스체크 대기 중..."
 RETRIES=12
 INTERVAL=5
+HEALTH_PORT="${PB_HOST_PORT:-8090}"
 
 for i in $(seq 1 $RETRIES); do
   STATUS=$(ssh "$SSH_TARGET" \
-    "curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/api/health 2>/dev/null || echo 000")
+    "curl -s -o /dev/null -w '%{http_code}' http://localhost:$HEALTH_PORT/api/health 2>/dev/null || echo 000")
   if [ "$STATUS" = "200" ]; then
     echo "[deploy] 배포 완료"
     exit 0
