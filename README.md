@@ -117,6 +117,9 @@ pocketbase-toolkit/
 ├── docs/
 │   ├── deployment.md           # 배포 상세 가이드
 │   ├── evaluation.md           # 기획 평가
+│   ├── manual/
+│   │   ├── make.md             # Make 명령어 및 운영 루틴 매뉴얼
+│   │   └── pocketbase.md       # PocketBase 기본 사용/운영 매뉴얼
 │   ├── plan/                   # 아키텍처 및 구현 계획
 │   └── test/                   # Phase별 테스트 방법
 ├── extend/
