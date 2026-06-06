@@ -21,6 +21,9 @@ jobs:
         with:
           scandir: ./scripts
           additional_files: docker/entrypoint.sh
+          # SC1091: source로 불러오는 파일이 존재하지 않는 경우 무시 (예: .env)
+          # SC2029: ssh 명령어에서 원격 명령어가 로컬에서 실행되는 것처럼 보이는 경우 무시 (예: deploy.sh)
+          ignore: SC1091,SC2029
 
   # ── CI: Docker 빌드 검증 (표준) ────────────────────────────────────────────
   build-docker:
