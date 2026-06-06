@@ -364,6 +364,7 @@ pocketbase-toolkit/
 │   ├── deployment.md
 │   ├── evaluation.md
 │   ├── manual/
+│   │   ├── caddy.md
 │   │   ├── cloudflare-tunnel.md
 │   │   ├── make.md
 │   │   └── pocketbase.md
