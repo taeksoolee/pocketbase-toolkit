@@ -13,7 +13,7 @@ services:
       - ../pb_migrations:/pb/pb_migrations
       - ../pb_hooks:/pb/pb_hooks
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8090/api/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:${PB_HOST_PORT:-8090}/api/health"]
       interval: 10s
       timeout: 5s
       start_period: 10s

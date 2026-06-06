@@ -109,14 +109,14 @@ Cloudflare Edge (HTTPS 종단, DDoS 방어)
 cloudflared 컨테이너 (서버 내부)
      │  HTTP
      ▼
-PocketBase 컨테이너 (8090)
+PocketBase 컨테이너 (${PB_HOST_PORT:-8090})
 ```
 
 전제 조건:
 
 - Cloudflare에 도메인 등록
 - Cloudflare Zero Trust > Networks > Tunnels에서 터널 생성 후 토큰 발급
-- Public Hostname: `example.com` -> Service: `http://pocketbase:8090`
+- Public Hostname: `example.com` -> Service: `http://pocketbase:${PB_HOST_PORT:-8090}` 설정
 
 ### 대안: Caddy
 

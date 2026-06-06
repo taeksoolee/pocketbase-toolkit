@@ -44,7 +44,7 @@ docker compose -f compose/docker-compose.yml up -d --build
 
 # 4. 헬스체크 (최대 60초 대기)
 echo "[upgrade] 4/4 헬스체크 대기 중..."
-PB_URL="${PB_URL:-http://localhost:8090}"
+PB_URL="${PB_URL:-http://localhost:${PB_HOST_PORT:-8090}}"
 RETRIES=12
 INTERVAL=5
 
