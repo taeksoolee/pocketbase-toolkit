@@ -8,7 +8,7 @@ PocketBase를 서버에 바로 배포할 수 있는 Docker 기반 툴킷.
 ## 특징
 
 - **포트 개방 불필요** — Cloudflare Tunnel로 방화벽 뒤 서버에서도 HTTPS 배포 가능
-- **Admin 계정 자동 생성** — `.env`의 `PB_ADMIN_EMAIL` / `PB_ADMIN_PASSWORD`로 최초 실행 시 자동 설정
+- **Admin 계정 수동/동기화 지원** — `make sync-admin`으로 `.env` 기준 Admin 계정 create/update
 - **데이터 안전** — PocketBase API 기반 백업 + ofelia 자동 스케줄(매일 02:00) + S3 업로드 옵션
 - **안전한 업그레이드** — 백업 → 버전업 → 헬스체크 → 실패 시 자동 롤백
 - **단순한 배포** — `make deploy` 한 번으로 서버 업데이트
@@ -25,7 +25,7 @@ PocketBase를 서버에 바로 배포할 수 있는 Docker 기반 툴킷.
      - 앱 사용자 계정 (예: `users` 컬렉션)
      - Admin UI 로그인 계정과는 별개
 
-즉, 이 프로젝트에서 `make create-account`는 **Admin(UI) 계정**을 생성/갱신한다.
+즉, 이 프로젝트에서 `make create-admin`은 **Admin(UI) 계정**을 생성/갱신한다.
 
 ---
 
@@ -65,9 +65,16 @@ Cloudflare 없이 VPS에 직접 배포할 때 사용한다. 서버의 공인 IP�
 
 ```bash
 cp .env.example .env
-# .env 편집 (PB_HOST_PORT, PB_ADMIN_EMAIL, PB_ADMIN_PASSWORD)
+# .env 편집 (PB_HOST_PORT 등)
+make up-sync-admin
+# http://localhost:${PB_HOST_PORT:-8090}/_/ 접속
+```
+
+또는 단계별 실행:
+
+```bash
 make up
-# http://localhost:${PB_HOST_PORT:-8090}/_/ 접속 → .env 계정으로 로그인
+make sync-admin
 ```
 
 ### 프로덕션 (Cloudflare Tunnel)
@@ -96,20 +103,29 @@ make deploy-caddy
 |--------|------|
 | `make up` | 로컬 실행 |
 | `make down` | 컨테이너 종료 |
+| `make reset` | 로컬 완전 초기화 후 재기동 (컨테이너/이미지/볼륨 삭제) |
 | `make logs` | 로그 출력 |
 | `make shell` | PocketBase 컨테이너 접속 |
 | `make prod-up` | 프로덕션 로컬 실행 (Cloudflare Tunnel + ofelia) |
 | `make prod-down` | 프로덕션 종료 |
+| `make prod-clean` | 프로덕션 컨테이너 전체 종료 + 관련 이미지 제거 (재기동은 하지 않음) |
+| `make prod-reset` | 프로덕션 완전 초기화 후 재기동 (컨테이너/이미지/볼륨 삭제) |
 | `make deploy` | SSH로 서버 배포 (Cloudflare Tunnel) |
 | `make deploy-caddy` | SSH로 서버 배포 (Caddy) |
 | `make backup` | 수동 백업 실행 |
 | `make db-snapshot` | 디버깅용 DB 스냅샷 ZIP 생성 (`./snapshots`) |
 | `make restore` | 백업 목록에서 선택하여 복원 |
 | `make upgrade VERSION=x.x.x` | PocketBase 버전 업그레이드 (실패 시 자동 롤백) |
-| `make create-account` | PocketBase Admin(UI) 계정 생성 인터랙티브 실행 |
-| `make create-account EMAIL=admin2@example.com PASSWORD='...'` | PocketBase Admin(UI) 계정 생성 비인터랙티브 실행 |
+| `make create-admin` | PocketBase Admin(UI) 계정 생성 인터랙티브 실행 |
+| `make make-admin` | `make create-admin` 별칭 |
+| `make sync-admin` | `.env`의 Admin 계정 정보로 create/update 동기화 |
+| `make up-sync-admin` | `make up` 후 `make sync-admin` 실행 |
+| `make create-admin EMAIL=admin2@example.com PASSWORD='...'` | PocketBase Admin(UI) 계정 생성 비인터랙티브 실행 |
+| `make create-account` | 레거시 별칭 (`make create-admin`으로 연결) |
+| `make make-account` | 레거시 별칭 (`make create-admin`으로 연결) |
+| `make list-admins` | PocketBase Admin(UI) 계정 목록 조회 |
 
-`make db-snapshot`는 `.env`의 `PB_ADMIN_EMAIL`, `PB_ADMIN_PASSWORD`만 사용한다.
+`make db-snapshot`와 `make list-admins`는 `.env`의 `PB_ADMIN_EMAIL`, `PB_ADMIN_PASSWORD`를 사용한다.
 
 ---
 
@@ -131,11 +147,12 @@ pocketbase-toolkit/
 ├── docker/
 │   ├── Dockerfile              # PocketBase 이미지
 │   ├── Dockerfile.extend       # Go 커스텀 빌드용 (선택)
-│   └── entrypoint.sh           # Admin 계정 자동 생성 + 서버 기동
+│   └── entrypoint.sh           # PocketBase 서버 기동
 ├── docs/
 │   ├── deployment.md           # 배포 상세 가이드
 │   ├── evaluation.md           # 기획 평가
 │   ├── manual/
+│   │   ├── cloudflare-tunnel.md # Cloudflare Tunnel 설정/운영 매뉴얼
 │   │   ├── make.md             # Make 명령어 및 운영 루틴 매뉴얼
 │   │   └── pocketbase.md       # PocketBase 기본 사용/운영 매뉴얼
 │   ├── plan/                   # 아키텍처 및 구현 계획
@@ -150,8 +167,9 @@ pocketbase-toolkit/
 │   └── .gitkeep                # 빈 디렉토리 유지
 ├── scripts/
 │   ├── backup.sh               # PocketBase API 기반 백업
-│   ├── create_account.sh       # PocketBase Admin(UI) 계정 생성/업데이트
+│   ├── create_admin.sh         # PocketBase Admin(UI) 계정 생성/업데이트
 │   ├── db_snapshot.sh          # 디버깅용 DB 스냅샷 생성
+│   ├── list_admins.sh          # PocketBase Admin(UI) 계정 목록 조회
 │   ├── restore.sh              # 백업 선택 복원
 │   ├── upgrade.sh              # 버전 업그레이드 + 자동 롤백
 │   └── deploy.sh               # SSH 배포 + 헬스체크
@@ -193,10 +211,32 @@ DEPLOY_USER=
 DEPLOY_PATH=/opt/pocketbase
 ```
 
-`make up` 시 서버 기동 전에 Admin 계정 값이 먼저 검증된다.
-- `PB_ADMIN_EMAIL`, `PB_ADMIN_PASSWORD`는 함께 설정해야 함
-- `PB_ADMIN_EMAIL`은 이메일 형식이어야 함
-- `PB_ADMIN_PASSWORD`는 최소 8자 이상이어야 함
+Admin 계정 생성/갱신은 서버 기동 후 아래 명령으로 수행한다.
+
+권장:
+
+```bash
+make sync-admin
+```
+
+서버 기동과 계정 동기화를 한 번에:
+
+```bash
+make up-sync-admin
+```
+
+대화형 수동 생성이 필요하면:
+
+```bash
+make create-admin
+# 또는: make make-admin
+```
+
+비인터랙티브 모드:
+
+```bash
+make create-admin EMAIL=admin@example.com PASSWORD='your-password'
+```
 
 ---
 
