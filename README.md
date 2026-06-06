@@ -99,35 +99,41 @@ make deploy-caddy
 
 ```
 pocketbase-toolkit/
+├── .claude/
+│   └── settings.local.json    # 로컬 개발 도구 설정
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml          # main push 시 자동 배포 (GitHub Actions)
+│       └── ci-cd.yml           # CI(lint + 빌드 검증) + CD(main push 시 자동 배포)
+├── caddy/
+│   └── Caddyfile               # Caddy 리버스 프록시 설정
+├── compose/
+│   ├── docker-compose.caddy.yml # 대안 (Caddy)
+│   ├── docker-compose.prod.yml # 프로덕션 (Cloudflare Tunnel + ofelia)
+│   └── docker-compose.yml      # 로컬
 ├── docker/
 │   ├── Dockerfile              # PocketBase 이미지
 │   ├── Dockerfile.extend       # Go 커스텀 빌드용 (선택)
 │   └── entrypoint.sh           # Admin 계정 자동 생성 + 서버 기동
-├── compose/
-│   ├── docker-compose.yml      # 로컬
-│   ├── docker-compose.prod.yml # 프로덕션 (Cloudflare Tunnel + ofelia)
-│   └── docker-compose.caddy.yml # 대안 (Caddy)
-├── caddy/
-│   └── Caddyfile               # Caddy 리버스 프록시 설정
+├── docs/
+│   ├── deployment.md           # 배포 상세 가이드
+│   ├── evaluation.md           # 기획 평가
+│   ├── plan/                   # 아키텍처 및 구현 계획
+│   └── test/                   # Phase별 테스트 방법
 ├── extend/
 │   └── main.go                 # Go 확장 진입점 예시 (선택)
-├── pb_migrations/              # PocketBase 마이그레이션 파일
 ├── pb_hooks/                   # PocketBase JS 훅
+│   ├── .gitkeep                # 빈 디렉토리 유지
 │   ├── on_record_create_validate.pb.js   # 유효성 검사 예시
 │   └── on_record_create_send_email.pb.js # 이메일 발송 예시
+├── pb_migrations/              # PocketBase 마이그레이션 파일
+│   └── .gitkeep                # 빈 디렉토리 유지
 ├── scripts/
 │   ├── backup.sh               # PocketBase API 기반 백업
 │   ├── restore.sh              # 백업 선택 복원
 │   ├── upgrade.sh              # 버전 업그레이드 + 자동 롤백
 │   └── deploy.sh               # SSH 배포 + 헬스체크
-├── docs/
-│   ├── plan/                   # 아키텍처 및 구현 계획
-│   ├── test/                   # Phase별 테스트 방법
-│   └── evaluation.md           # 기획 평가
 ├── .env.example
+├── .gitignore
 ├── Makefile
 └── README.md
 ```
@@ -199,11 +205,29 @@ make upgrade VERSION=0.23.0
 
 ## 배포 자동화
 
-### GitHub Actions
+### GitHub Actions (CI/CD)
 
-`main` 브랜치에 push 시 자동으로 서버 배포가 실행된다.
+PR과 main push 시 CI가 실행되고, main push 시에는 CI 통과 후 자동으로 서버 배포까지 실행된다.
 
-GitHub 저장소 → Settings → Secrets에 아래 항목을 등록한다:
+```
+PR        →  lint + Docker 빌드 검증 (배포 없음)
+main push →  lint + Docker 빌드 검증 → 배포
+```
+
+#### 1단계: 첫 배포는 로컬에서 실행
+
+GitHub Actions에는 `.env` 파일이 없기 때문에 **최초 1회는 로컬에서 직접 배포**해야 한다.
+이 과정에서 로컬 `.env`가 서버로 전송되고, 이후 GitHub Actions 배포에서는 서버의 `.env`를 그대로 사용한다.
+
+```bash
+cp .env.example .env
+# .env에 CF_TUNNEL_TOKEN, DEPLOY_HOST, DEPLOY_USER 등 입력
+make deploy          # 또는: sh scripts/deploy.sh cloudflare
+```
+
+#### 2단계: GitHub Secrets 등록
+
+GitHub 저장소 → Settings → Secrets and variables → Actions에 아래 항목을 등록한다:
 
 | Secret | 값 |
 |--------|-----|
@@ -211,6 +235,16 @@ GitHub 저장소 → Settings → Secrets에 아래 항목을 등록한다:
 | `DEPLOY_HOST` | 서버 IP 또는 도메인 |
 | `DEPLOY_USER` | SSH 접속 계정 |
 | `DEPLOY_PATH` | 서버 배포 경로 (예: `/opt/pocketbase`) |
+
+> `CF_TUNNEL_TOKEN` 등 앱 설정값은 Secrets에 등록하지 않아도 된다. 1단계에서 서버에 전송된 `.env`를 계속 사용한다.
+
+#### 이후 배포
+
+`main` 브랜치에 push하면 CI 검증 후 자동 배포된다. 긴급 수동 배포가 필요할 때는 로컬에서 직접 실행해도 된다.
+
+```bash
+sh scripts/deploy.sh cloudflare   # 로컬 수동 배포
+```
 
 ---
 
