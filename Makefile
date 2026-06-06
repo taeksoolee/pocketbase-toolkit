@@ -1,4 +1,4 @@
-.PHONY: up down reset logs shell prod-up prod-down prod-clean prod-reset backup restore upgrade deploy deploy-caddy create-admin make-admin create-account make-account sync-admin up-sync-admin db-snapshot list-admins
+.PHONY: up down reset reset__danger logs shell prod-up prod-down prod-clean prod-reset prod-reset__danger backup restore upgrade deploy deploy-caddy create-admin make-admin create-account make-account sync-admin up-sync-admin db-snapshot list-admins
 
 COMPOSE       = docker compose --env-file .env -f compose/docker-compose.yml
 COMPOSE_PROD  = docker compose --env-file .env -f compose/docker-compose.yml -f compose/docker-compose.prod.yml
@@ -13,6 +13,11 @@ down:
 	$(COMPOSE) down
 
 reset:
+	@echo "[reset] 차단됨: 파괴적 명령입니다."
+	@echo "[reset] 실행하려면: make reset__danger"
+	@exit 1
+
+reset__danger:
 	$(COMPOSE) down --rmi all --volumes --remove-orphans
 	docker builder prune -af
 	$(COMPOSE) up -d --build --force-recreate
@@ -35,6 +40,11 @@ prod-clean:
 	$(COMPOSE_PROD) down --rmi all --remove-orphans
 
 prod-reset:
+	@echo "[prod-reset] 차단됨: 파괴적 명령입니다."
+	@echo "[prod-reset] 실행하려면: make prod-reset__danger"
+	@exit 1
+
+prod-reset__danger:
 	$(COMPOSE_PROD) down --rmi all --volumes --remove-orphans
 	docker builder prune -af
 	$(COMPOSE_PROD) up -d --build --force-recreate

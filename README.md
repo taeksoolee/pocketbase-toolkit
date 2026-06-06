@@ -62,8 +62,8 @@ make up-sync-admin
 
 데이터가 삭제되는 경우:
 
-- `make reset`
-- `make prod-reset`
+- `make reset__danger`
+- `make prod-reset__danger`
 - 수동으로 볼륨을 삭제한 경우
 
 즉, 운영 환경에서는 reset 계열 명령 사용 전 반드시 백업을 먼저 수행해야 한다.
@@ -184,13 +184,15 @@ main push -> lint + Docker 빌드 검증 -> 자동 배포
 |--------|------|
 | `make up` | 로컬 실행 |
 | `make down` | 컨테이너 종료 |
-| `make reset` | 로컬 완전 초기화 후 재기동 (컨테이너/이미지/볼륨 삭제) |
+| `make reset` | 안전 차단 타깃 (실행 시 안내 후 중단) |
+| `make reset__danger` | 로컬 완전 초기화 후 재기동 (컨테이너/이미지/볼륨 삭제) |
 | `make logs` | 로그 출력 |
 | `make shell` | PocketBase 컨테이너 접속 |
 | `make prod-up` | 프로덕션 로컬 실행 (Cloudflare Tunnel + ofelia) |
 | `make prod-down` | 프로덕션 종료 |
 | `make prod-clean` | 프로덕션 컨테이너 종료 + 관련 이미지 제거 (재기동 없음) |
-| `make prod-reset` | 프로덕션 완전 초기화 후 재기동 (컨테이너/이미지/볼륨 삭제) |
+| `make prod-reset` | 안전 차단 타깃 (실행 시 안내 후 중단) |
+| `make prod-reset__danger` | 프로덕션 완전 초기화 후 재기동 (컨테이너/이미지/볼륨 삭제) |
 | `make deploy` | SSH로 서버 배포 (Cloudflare Tunnel) |
 | `make deploy-caddy` | SSH로 서버 배포 (Caddy) |
 | `make backup` | 수동 백업 실행 |
