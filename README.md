@@ -1,31 +1,83 @@
 # pocketbase-toolkit
 
-PocketBase를 서버에 바로 배포할 수 있는 Docker 기반 툴킷.
-백업, 복원, 업그레이드, 배포 자동화까지 포함한 재사용 가능한 템플릿이다.
+PocketBase를 Docker 기반으로 운영하기 위한 배포 템플릿이다.
+핵심 목표는 다음 3가지다.
+
+- 포크 저장소(private)에서 바로 배포 가능한 구조
+- 업스트림 변경 반영 시 CI/CD로 자동 재배포 가능한 구조
+- 재배포가 발생해도 데이터(볼륨) 유지가 가능한 구조
 
 ---
 
-## 특징
+## 운영 관점 핵심 요약
 
-- **포트 개방 불필요** — Cloudflare Tunnel로 방화벽 뒤 서버에서도 HTTPS 배포 가능
-- **Admin 계정 수동/동기화 지원** — `make sync-admin`으로 `.env` 기준 Admin 계정 create/update
-- **데이터 안전** — PocketBase API 기반 백업 + ofelia 자동 스케줄(매일 02:00) + S3 업로드 옵션
-- **안전한 업그레이드** — 백업 → 버전업 → 헬스체크 → 실패 시 자동 롤백
-- **단순한 배포** — `make deploy` 한 번으로 서버 업데이트
-- **확장 가능** — JS 훅 또는 Go 커스텀 빌드로 비즈니스 로직 추가 가능
+- 기본 배포 경로는 Cloudflare Tunnel 기반이며 서버 포트 개방 없이 HTTPS 노출 가능
+- Admin 계정은 컨테이너 시작 시 자동 생성하지 않고, 명령으로 명시적으로 동기화
+- 배포 자동화는 GitHub Actions에서 수행하며, 서버의 `.env`를 기준으로 환경 유지
+- 일반 배포/재배포는 볼륨을 삭제하지 않으므로 PocketBase 데이터가 유지됨
+
+---
+
+## 운영 시나리오 (권장)
+
+### 1) 템플릿 포크 후 private 전환
+
+1. 이 저장소를 포크
+2. 포크 저장소를 private로 전환
+3. 서버 1대 준비 (Docker/Compose 설치)
+
+### 2) 최초 1회 배포 (환경 안착)
+
+```bash
+cp .env.example .env
+# .env에 CF_TUNNEL_TOKEN, DOMAIN, DEPLOY_HOST, DEPLOY_USER 등 입력
+make deploy
+```
+
+최초 1회 배포에서 서버에 `.env`가 전달되고, 이후 자동 배포는 서버의 `.env`를 계속 사용한다.
+
+### 3) Admin 계정 동기화
+
+```bash
+make sync-admin
+# 또는 로컬 개발 시
+make up-sync-admin
+```
+
+### 4) 이후 운영
+
+- 포크 저장소의 `main`에 push하면 CI/CD가 자동 배포
+- 업스트림 원본 저장소 변경을 포크에 동기화하면 동일하게 자동 배포
+- 재배포가 발생해도 볼륨 삭제가 없으면 데이터는 유지
+
+---
+
+## 데이터 유지 원칙 (중요)
+
+다음 조건을 지키면 재배포 시 데이터는 유지된다.
+
+- PocketBase 데이터는 Docker 볼륨(`pb_data`)에 저장
+- 일반 배포는 `down --volumes`를 사용하지 않음
+- `make deploy`, `make prod-up`, CI/CD 재배포는 볼륨을 유지하는 경로
+
+데이터가 삭제되는 경우:
+
+- `make reset`
+- `make prod-reset`
+- 수동으로 볼륨을 삭제한 경우
+
+즉, 운영 환경에서는 reset 계열 명령 사용 전 반드시 백업을 먼저 수행해야 한다.
 
 ---
 
 ## 계정 용어 정리
 
-- **Admin = Superuser (동일 개념)**
-     - PocketBase Admin UI(`/_/`)에 로그인 가능한 운영자 계정
-     - 이 프로젝트의 `.env` `PB_ADMIN_EMAIL` / `PB_ADMIN_PASSWORD`는 이 Admin 계정을 의미
-- **User (Auth 컬렉션 레코드)**
-     - 앱 사용자 계정 (예: `users` 컬렉션)
-     - Admin UI 로그인 계정과는 별개
+- Admin = Superuser (동일 개념)
+: PocketBase Admin UI(`/_/`)에 로그인하는 운영자 계정
+- User (Auth 컬렉션 레코드)
+: 앱 사용자 계정이며 Admin 계정과는 별개
 
-즉, 이 프로젝트에서 `make create-admin`은 **Admin(UI) 계정**을 생성/갱신한다.
+이 프로젝트의 `.env` `PB_ADMIN_EMAIL`, `PB_ADMIN_PASSWORD`는 Admin 계정을 의미한다.
 
 ---
 
@@ -48,14 +100,16 @@ cloudflared 컨테이너 (서버 내부)
 PocketBase 컨테이너 (8090)
 ```
 
-**전제 조건:**
+전제 조건:
+
 - Cloudflare에 도메인 등록
 - Cloudflare Zero Trust > Networks > Tunnels에서 터널 생성 후 토큰 발급
-  - Public Hostname: `example.com` → Service: `http://pocketbase:8090`
+- Public Hostname: `example.com` -> Service: `http://pocketbase:8090`
 
 ### 대안: Caddy
 
-Cloudflare 없이 VPS에 직접 배포할 때 사용한다. 서버의 공인 IP와 80/443 포트 개방이 필요하다.
+Cloudflare 없이 VPS에 직접 배포할 때 사용한다.
+서버의 공인 IP와 80/443 포트 개방이 필요하다.
 
 ---
 
@@ -67,7 +121,7 @@ Cloudflare 없이 VPS에 직접 배포할 때 사용한다. 서버의 공인 IP�
 cp .env.example .env
 # .env 편집 (PB_HOST_PORT 등)
 make up-sync-admin
-# http://localhost:${PB_HOST_PORT:-8090}/_/ 접속
+# http://localhost:${PB_HOST_PORT:-8090}/_/
 ```
 
 또는 단계별 실행:
@@ -83,7 +137,7 @@ make sync-admin
 cp .env.example .env
 # .env에 CF_TUNNEL_TOKEN, DOMAIN, DEPLOY_HOST, DEPLOY_USER 입력
 make deploy
-# https://DOMAIN/_/ 접속
+# https://DOMAIN/_/
 ```
 
 ### 프로덕션 (Caddy)
@@ -92,8 +146,35 @@ make deploy
 cp .env.example .env
 # .env에 DOMAIN, DEPLOY_HOST, DEPLOY_USER 입력 / 서버 80/443 포트 개방
 make deploy-caddy
-# https://DOMAIN/_/ 접속
+# https://DOMAIN/_/
 ```
+
+---
+
+## CI/CD 및 포크 운영
+
+### 배포 흐름
+
+```text
+PR        -> lint + Docker 빌드 검증 (배포 없음)
+main push -> lint + Docker 빌드 검증 -> 자동 배포
+```
+
+### GitHub Secrets
+
+포크 저장소의 Settings -> Secrets and variables -> Actions에 아래 항목 등록:
+
+- `DEPLOY_SSH_KEY`: SSH private key (`~/.ssh/id_ed25519` 내용)
+- `DEPLOY_HOST`: 서버 IP 또는 도메인
+- `DEPLOY_USER`: SSH 접속 계정
+- `DEPLOY_PATH`: 서버 배포 경로 (예: `/opt/pocketbase`)
+
+`CF_TUNNEL_TOKEN` 등 앱 설정값은 최초 배포 시 서버 `.env`에 반영되며, 이후 서버 `.env`를 유지해도 된다.
+
+### 업스트림 반영
+
+업스트림 변경을 포크 저장소 `main`에 반영하면 워크플로우가 재실행되고, 서버 환경이 업데이트된다.
+이때 볼륨을 삭제하지 않으면 데이터는 유지된다.
 
 ---
 
@@ -108,7 +189,7 @@ make deploy-caddy
 | `make shell` | PocketBase 컨테이너 접속 |
 | `make prod-up` | 프로덕션 로컬 실행 (Cloudflare Tunnel + ofelia) |
 | `make prod-down` | 프로덕션 종료 |
-| `make prod-clean` | 프로덕션 컨테이너 전체 종료 + 관련 이미지 제거 (재기동은 하지 않음) |
+| `make prod-clean` | 프로덕션 컨테이너 종료 + 관련 이미지 제거 (재기동 없음) |
 | `make prod-reset` | 프로덕션 완전 초기화 후 재기동 (컨테이너/이미지/볼륨 삭제) |
 | `make deploy` | SSH로 서버 배포 (Cloudflare Tunnel) |
 | `make deploy-caddy` | SSH로 서버 배포 (Caddy) |
@@ -116,68 +197,16 @@ make deploy-caddy
 | `make db-snapshot` | 디버깅용 DB 스냅샷 ZIP 생성 (`./snapshots`) |
 | `make restore` | 백업 목록에서 선택하여 복원 |
 | `make upgrade VERSION=x.x.x` | PocketBase 버전 업그레이드 (실패 시 자동 롤백) |
-| `make create-admin` | PocketBase Admin(UI) 계정 생성 인터랙티브 실행 |
+| `make create-admin` | Admin(UI) 계정 생성 인터랙티브 실행 |
 | `make make-admin` | `make create-admin` 별칭 |
-| `make sync-admin` | `.env`의 Admin 계정 정보로 create/update 동기화 |
+| `make sync-admin` | `.env` Admin 정보로 create/update 동기화 |
 | `make up-sync-admin` | `make up` 후 `make sync-admin` 실행 |
-| `make create-admin EMAIL=admin2@example.com PASSWORD='...'` | PocketBase Admin(UI) 계정 생성 비인터랙티브 실행 |
+| `make create-admin EMAIL=admin2@example.com PASSWORD='...'` | Admin(UI) 계정 생성 비인터랙티브 실행 |
 | `make create-account` | 레거시 별칭 (`make create-admin`으로 연결) |
 | `make make-account` | 레거시 별칭 (`make create-admin`으로 연결) |
-| `make list-admins` | PocketBase Admin(UI) 계정 목록 조회 |
+| `make list-admins` | Admin(UI) 계정 목록 조회 |
 
 `make db-snapshot`와 `make list-admins`는 `.env`의 `PB_ADMIN_EMAIL`, `PB_ADMIN_PASSWORD`를 사용한다.
-
----
-
-## 디렉토리 구조
-
-```
-pocketbase-toolkit/
-├── .claude/
-│   └── settings.local.json    # 로컬 개발 도구 설정
-├── .github/
-│   └── workflows/
-│       └── ci-cd.yml           # CI(lint + 빌드 검증) + CD(main push 시 자동 배포)
-├── caddy/
-│   └── Caddyfile               # Caddy 리버스 프록시 설정
-├── compose/
-│   ├── docker-compose.caddy.yml # 대안 (Caddy)
-│   ├── docker-compose.prod.yml # 프로덕션 (Cloudflare Tunnel + ofelia)
-│   └── docker-compose.yml      # 로컬
-├── docker/
-│   ├── Dockerfile              # PocketBase 이미지
-│   ├── Dockerfile.extend       # Go 커스텀 빌드용 (선택)
-│   └── entrypoint.sh           # PocketBase 서버 기동
-├── docs/
-│   ├── deployment.md           # 배포 상세 가이드
-│   ├── evaluation.md           # 기획 평가
-│   ├── manual/
-│   │   ├── cloudflare-tunnel.md # Cloudflare Tunnel 설정/운영 매뉴얼
-│   │   ├── make.md             # Make 명령어 및 운영 루틴 매뉴얼
-│   │   └── pocketbase.md       # PocketBase 기본 사용/운영 매뉴얼
-│   ├── plan/                   # 아키텍처 및 구현 계획
-│   └── test/                   # Phase별 테스트 방법
-├── extend/
-│   └── main.go                 # Go 확장 진입점 예시 (선택)
-├── pb_hooks/                   # PocketBase JS 훅
-│   ├── .gitkeep                # 빈 디렉토리 유지
-│   ├── on_record_create_validate.pb.js   # 유효성 검사 예시
-│   └── on_record_create_send_email.pb.js # 이메일 발송 예시
-├── pb_migrations/              # PocketBase 마이그레이션 파일
-│   └── .gitkeep                # 빈 디렉토리 유지
-├── scripts/
-│   ├── backup.sh               # PocketBase API 기반 백업
-│   ├── create_admin.sh         # PocketBase Admin(UI) 계정 생성/업데이트
-│   ├── db_snapshot.sh          # 디버깅용 DB 스냅샷 생성
-│   ├── list_admins.sh          # PocketBase Admin(UI) 계정 목록 조회
-│   ├── restore.sh              # 백업 선택 복원
-│   ├── upgrade.sh              # 버전 업그레이드 + 자동 롤백
-│   └── deploy.sh               # SSH 배포 + 헬스체크
-├── .env.example
-├── .gitignore
-├── Makefile
-└── README.md
-```
 
 ---
 
@@ -211,9 +240,7 @@ DEPLOY_USER=
 DEPLOY_PATH=/opt/pocketbase
 ```
 
-Admin 계정 생성/갱신은 서버 기동 후 아래 명령으로 수행한다.
-
-권장:
+운영 권장:
 
 ```bash
 make sync-admin
@@ -225,14 +252,14 @@ make sync-admin
 make up-sync-admin
 ```
 
-대화형 수동 생성이 필요하면:
+대화형 수동 생성:
 
 ```bash
 make create-admin
 # 또는: make make-admin
 ```
 
-비인터랙티브 모드:
+비인터랙티브 생성:
 
 ```bash
 make create-admin EMAIL=admin@example.com PASSWORD='your-password'
@@ -240,7 +267,7 @@ make create-admin EMAIL=admin@example.com PASSWORD='your-password'
 
 ---
 
-## 백업
+## 백업 / 복원 / 업그레이드
 
 ### 수동 백업
 
@@ -251,68 +278,70 @@ make backup
 
 ### 자동 백업 (프로덕션)
 
-`make prod-up` / `make deploy` 실행 시 ofelia 컨테이너가 함께 기동되며 **매일 새벽 2시**에 자동 백업이 실행된다.
+`make prod-up` 또는 `make deploy` 실행 시 ofelia 컨테이너가 함께 기동되며 매일 새벽 2시에 자동 백업이 실행된다.
 
 ### 복원
 
 ```bash
 make restore
-# 백업 목록 출력 → 번호 선택 → 복원 실행
+# 백업 목록 출력 -> 번호 선택 -> 복원 실행
 ```
 
----
-
-## 업그레이드
+### 업그레이드
 
 ```bash
 make upgrade VERSION=0.23.0
 ```
 
-순서: 백업 → `PB_VERSION` 변경 → 컨테이너 재빌드 → 헬스체크(최대 60초) → 실패 시 이전 버전으로 자동 롤백
+순서: 백업 -> `PB_VERSION` 변경 -> 컨테이너 재빌드 -> 헬스체크(최대 60초) -> 실패 시 이전 버전 자동 롤백
 
 ---
 
-## 배포 자동화
+## 디렉토리 구조
 
-### GitHub Actions (CI/CD)
-
-PR과 main push 시 CI가 실행되고, main push 시에는 CI 통과 후 자동으로 서버 배포까지 실행된다.
-
-```
-PR        →  lint + Docker 빌드 검증 (배포 없음)
-main push →  lint + Docker 빌드 검증 → 배포
-```
-
-#### 1단계: 첫 배포는 로컬에서 실행
-
-GitHub Actions에는 `.env` 파일이 없기 때문에 **최초 1회는 로컬에서 직접 배포**해야 한다.
-이 과정에서 로컬 `.env`가 서버로 전송되고, 이후 GitHub Actions 배포에서는 서버의 `.env`를 그대로 사용한다.
-
-```bash
-cp .env.example .env
-# .env에 CF_TUNNEL_TOKEN, DEPLOY_HOST, DEPLOY_USER 등 입력
-make deploy          # 또는: sh scripts/deploy.sh cloudflare
-```
-
-#### 2단계: GitHub Secrets 등록
-
-GitHub 저장소 → Settings → Secrets and variables → Actions에 아래 항목을 등록한다:
-
-| Secret | 값 |
-|--------|-----|
-| `DEPLOY_SSH_KEY` | SSH private key (`~/.ssh/id_ed25519` 내용) |
-| `DEPLOY_HOST` | 서버 IP 또는 도메인 |
-| `DEPLOY_USER` | SSH 접속 계정 |
-| `DEPLOY_PATH` | 서버 배포 경로 (예: `/opt/pocketbase`) |
-
-> `CF_TUNNEL_TOKEN` 등 앱 설정값은 Secrets에 등록하지 않아도 된다. 1단계에서 서버에 전송된 `.env`를 계속 사용한다.
-
-#### 이후 배포
-
-`main` 브랜치에 push하면 CI 검증 후 자동 배포된다. 긴급 수동 배포가 필요할 때는 로컬에서 직접 실행해도 된다.
-
-```bash
-sh scripts/deploy.sh cloudflare   # 로컬 수동 배포
+```text
+pocketbase-toolkit/
+├── .claude/
+│   └── settings.local.json
+├── .github/
+│   └── workflows/
+│       └── ci-cd.yml
+├── caddy/
+│   └── Caddyfile
+├── compose/
+│   ├── docker-compose.caddy.yml
+│   ├── docker-compose.prod.yml
+│   └── docker-compose.yml
+├── docker/
+│   ├── Dockerfile
+│   ├── Dockerfile.extend
+│   └── entrypoint.sh
+├── docs/
+│   ├── deployment.md
+│   ├── evaluation.md
+│   ├── manual/
+│   │   ├── cloudflare-tunnel.md
+│   │   ├── make.md
+│   │   └── pocketbase.md
+│   ├── plan/
+│   └── test/
+├── extend/
+│   └── main.go
+├── pb_hooks/
+├── pb_migrations/
+├── scripts/
+│   ├── backup.sh
+│   ├── create_admin.sh
+│   ├── db_snapshot.sh
+│   ├── list_admins.sh
+│   ├── restore.sh
+│   ├── sync_admin_from_env.sh
+│   ├── upgrade.sh
+│   └── deploy.sh
+├── .env.example
+├── .gitignore
+├── Makefile
+└── README.md
 ```
 
 ---
@@ -321,11 +350,7 @@ sh scripts/deploy.sh cloudflare   # 로컬 수동 배포
 
 `pb_hooks/*.pb.js` 파일을 추가하면 PocketBase가 자동으로 로드한다. 재시작 불필요.
 
-```
-pb_hooks/
-├── on_record_create_validate.pb.js   # 레코드 생성 전 유효성 검사 예시
-└── on_record_create_send_email.pb.js # 레코드 생성 후 이메일 발송 예시
-```
+---
 
 ## Go 확장 빌드 (선택)
 
