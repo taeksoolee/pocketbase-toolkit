@@ -29,18 +29,23 @@ SSH_TARGET="$DEPLOY_USER@$DEPLOY_HOST"
 
 echo "[deploy] 배포 시작: $SSH_TARGET:$DEPLOY_PATH (mode: $DEPLOY_MODE)"
 
-# 서버에 배포 디렉토리가 없으면 git clone, 있으면 git pull
-GIT_REMOTE_URL=$(git remote get-url origin)
-# shellcheck disable=SC2029
+echo "[deploy] 소스코드 압축 중..."
+# .git이나 .github 같은 불필요한 폴더를 제외하고 하나의 압축파일로 만듭니다.
+tar -czf "$SCRIPT_DIR/release.tar.gz" -C "$ROOT_DIR" \
+  --exclude='.git' \
+  --exclude='.github' \
+  --exclude='scripts/release.tar.gz' .
+
+echo "[deploy] 소스코드 서버로 전송 및 압축 해제 중..."
+# 서버에 디렉토리가 없으면 만들고, 압축파일을 보낸 뒤 서버 안에서 해제합니다.
+ssh "$SSH_TARGET" "mkdir -p '$DEPLOY_PATH'"
+scp "$SCRIPT_DIR/release.tar.gz" "$SSH_TARGET:$DEPLOY_PATH/release.tar.gz"
+
 ssh "$SSH_TARGET" "
   set -e
-  if [ ! -d '$DEPLOY_PATH/.git' ]; then
-    echo '[deploy] 최초 배포 — 저장소 클론 중...'
-    git clone '$GIT_REMOTE_URL' '$DEPLOY_PATH'
-  else
-    echo '[deploy] 저장소 업데이트 중...'
-    cd '$DEPLOY_PATH' && git pull
-  fi
+  cd '$DEPLOY_PATH'
+  tar -xzf release.tar.gz
+  rm release.tar.gz
 "
 
 # .env 파일 동기화
