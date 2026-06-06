@@ -1,8 +1,8 @@
-.PHONY: up down logs shell prod-up prod-down backup restore upgrade deploy deploy-caddy
+.PHONY: up down logs shell prod-up prod-down backup restore upgrade deploy deploy-caddy create-account
 
-COMPOSE       = docker compose -f compose/docker-compose.yml
-COMPOSE_PROD  = docker compose -f compose/docker-compose.yml -f compose/docker-compose.prod.yml
-COMPOSE_CADDY = docker compose -f compose/docker-compose.yml -f compose/docker-compose.caddy.yml
+COMPOSE       = docker compose --env-file .env -f compose/docker-compose.yml
+COMPOSE_PROD  = docker compose --env-file .env -f compose/docker-compose.yml -f compose/docker-compose.prod.yml
+COMPOSE_CADDY = docker compose --env-file .env -f compose/docker-compose.yml -f compose/docker-compose.caddy.yml
 
 # ── 로컬 ──────────────────────────────────────────────────────────────────────
 
@@ -45,3 +45,6 @@ restore:
 upgrade:
 	@if [ -z "$(VERSION)" ]; then echo "사용법: make upgrade VERSION=0.23.0"; exit 1; fi
 	@sh scripts/upgrade.sh $(VERSION)
+
+create-account:
+	@sh scripts/create_account.sh "$(EMAIL)" "$(PASSWORD)"

@@ -16,6 +16,19 @@ PocketBase를 서버에 바로 배포할 수 있는 Docker 기반 툴킷.
 
 ---
 
+## 계정 용어 정리
+
+- **Admin = Superuser (동일 개념)**
+     - PocketBase Admin UI(`/_/`)에 로그인 가능한 운영자 계정
+     - 이 프로젝트의 `.env` `PB_ADMIN_EMAIL` / `PB_ADMIN_PASSWORD`는 이 Admin 계정을 의미
+- **User (Auth 컬렉션 레코드)**
+     - 앱 사용자 계정 (예: `users` 컬렉션)
+     - Admin UI 로그인 계정과는 별개
+
+즉, 이 프로젝트에서 `make create-account`는 **Admin(UI) 계정**을 생성/갱신한다.
+
+---
+
 ## 네트워크 구성
 
 ### 기본: Cloudflare Tunnel
@@ -92,6 +105,8 @@ make deploy-caddy
 | `make backup` | 수동 백업 실행 |
 | `make restore` | 백업 목록에서 선택하여 복원 |
 | `make upgrade VERSION=x.x.x` | PocketBase 버전 업그레이드 (실패 시 자동 롤백) |
+| `make create-account` | PocketBase Admin(UI) 계정 생성 인터랙티브 실행 |
+| `make create-account EMAIL=admin2@example.com PASSWORD='...'` | PocketBase Admin(UI) 계정 생성 비인터랙티브 실행 |
 
 ---
 
@@ -132,6 +147,7 @@ pocketbase-toolkit/
 │   └── .gitkeep                # 빈 디렉토리 유지
 ├── scripts/
 │   ├── backup.sh               # PocketBase API 기반 백업
+│   ├── create_account.sh       # PocketBase Admin(UI) 계정 생성/업데이트
 │   ├── restore.sh              # 백업 선택 복원
 │   ├── upgrade.sh              # 버전 업그레이드 + 자동 롤백
 │   └── deploy.sh               # SSH 배포 + 헬스체크
@@ -172,6 +188,11 @@ DEPLOY_HOST=
 DEPLOY_USER=
 DEPLOY_PATH=/opt/pocketbase
 ```
+
+`make up` 시 서버 기동 전에 Admin 계정 값이 먼저 검증된다.
+- `PB_ADMIN_EMAIL`, `PB_ADMIN_PASSWORD`는 함께 설정해야 함
+- `PB_ADMIN_EMAIL`은 이메일 형식이어야 함
+- `PB_ADMIN_PASSWORD`는 최소 8자 이상이어야 함
 
 ---
 
