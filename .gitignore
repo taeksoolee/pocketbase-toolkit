@@ -3,6 +3,8 @@
 
 # 백업 파일
 backups/
+snapshots/*
+!snapshots/.gitkeep
 
 # macOS
 .DS_Store

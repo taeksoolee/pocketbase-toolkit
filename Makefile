@@ -1,4 +1,4 @@
-.PHONY: up down logs shell prod-up prod-down backup restore upgrade deploy deploy-caddy create-account
+.PHONY: up down logs shell prod-up prod-down backup restore upgrade deploy deploy-caddy create-account db-snapshot
 
 COMPOSE       = docker compose --env-file .env -f compose/docker-compose.yml
 COMPOSE_PROD  = docker compose --env-file .env -f compose/docker-compose.yml -f compose/docker-compose.prod.yml
@@ -48,3 +48,6 @@ upgrade:
 
 create-account:
 	@sh scripts/create_account.sh "$(EMAIL)" "$(PASSWORD)"
+
+db-snapshot:
+	@sh scripts/db_snapshot.sh

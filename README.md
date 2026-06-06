@@ -103,10 +103,13 @@ make deploy-caddy
 | `make deploy` | SSH로 서버 배포 (Cloudflare Tunnel) |
 | `make deploy-caddy` | SSH로 서버 배포 (Caddy) |
 | `make backup` | 수동 백업 실행 |
+| `make db-snapshot` | 디버깅용 DB 스냅샷 ZIP 생성 (`./snapshots`) |
 | `make restore` | 백업 목록에서 선택하여 복원 |
 | `make upgrade VERSION=x.x.x` | PocketBase 버전 업그레이드 (실패 시 자동 롤백) |
 | `make create-account` | PocketBase Admin(UI) 계정 생성 인터랙티브 실행 |
 | `make create-account EMAIL=admin2@example.com PASSWORD='...'` | PocketBase Admin(UI) 계정 생성 비인터랙티브 실행 |
+
+`make db-snapshot`는 `.env`의 `PB_ADMIN_EMAIL`, `PB_ADMIN_PASSWORD`만 사용한다.
 
 ---
 
@@ -148,6 +151,7 @@ pocketbase-toolkit/
 ├── scripts/
 │   ├── backup.sh               # PocketBase API 기반 백업
 │   ├── create_account.sh       # PocketBase Admin(UI) 계정 생성/업데이트
+│   ├── db_snapshot.sh          # 디버깅용 DB 스냅샷 생성
 │   ├── restore.sh              # 백업 선택 복원
 │   ├── upgrade.sh              # 버전 업그레이드 + 자동 롤백
 │   └── deploy.sh               # SSH 배포 + 헬스체크
