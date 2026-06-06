@@ -7,11 +7,12 @@ FORCE_SYNC_ENV="${FORCE_SYNC_ENV:-0}"
 
 if [ ! -f "$ROOT_DIR/.env" ]; then
   echo "[deploy] $ROOT_DIR/.env 파일이 없습니다."
-  echo "[deploy] 로컬 배포는 .env를 만들고, CI 배포는 워크플로우에서 .env 생성 단계를 확인하세요."
+  echo "[deploy] 로컬 배포는 .env를 만들고, CI 배포는 워크フル로우에서 .env 생성 단계를 확인하세요."
   exit 1
 fi
 
 set -a
+# shellcheck source=/dev/null
 . "$ROOT_DIR/.env"
 set +a
 
@@ -29,11 +30,13 @@ SSH_TARGET="$DEPLOY_USER@$DEPLOY_HOST"
 echo "[deploy] 배포 시작: $SSH_TARGET:$DEPLOY_PATH (mode: $DEPLOY_MODE)"
 
 # 서버에 배포 디렉토리가 없으면 git clone, 있으면 git pull
+GIT_REMOTE_URL=$(git remote get-url origin)
+# shellcheck disable=SC2029
 ssh "$SSH_TARGET" "
   set -e
   if [ ! -d '$DEPLOY_PATH/.git' ]; then
     echo '[deploy] 최초 배포 — 저장소 클론 중...'
-    git clone $(git remote get-url origin) '$DEPLOY_PATH'
+    git clone '$GIT_REMOTE_URL' '$DEPLOY_PATH'
   else
     echo '[deploy] 저장소 업데이트 중...'
     cd '$DEPLOY_PATH' && git pull
@@ -74,6 +77,7 @@ INTERVAL=5
 HEALTH_PORT="${PB_HOST_PORT:-8090}"
 
 for i in $(seq 1 $RETRIES); do
+  # shellcheck disable=SC2029
   STATUS=$(ssh "$SSH_TARGET" \
     "curl -s -o /dev/null -w '%{http_code}' http://localhost:$HEALTH_PORT/api/health 2>/dev/null || echo 000")
   if [ "$STATUS" = "200" ]; then
