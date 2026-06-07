@@ -436,6 +436,14 @@ docker build -f docker/Dockerfile.extend --build-arg PB_VERSION=0.22.4 -t pocket
 
 ---
 
+## NEXT (TODO)
+[] PB_HOST_PORT 환경 변수가 안 먹히는 문제 - 8090으로 포트 설정해야만 동작하는 문제가 있음 원인 분석 또는 환경 변수 제거 필요
+[] ci-cd 개선 - 현재 ci/cd 동작 안함 - 수동만 가능
+[] 스펙 간소화 - 커스텀 main.go 등 사용 안하도록 수정(docker.extend 사용 안함)
+  - (마이너 버전 호환성 이슈, 단 마이너 버전 업그레이드 시 db 구조가 변경될수 있음 참고)
+
+---
+
 ## 라이센스
 
 MIT
