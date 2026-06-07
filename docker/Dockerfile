@@ -25,6 +25,7 @@ RUN chmod +x /entrypoint.sh
 
 WORKDIR /pb
 
-EXPOSE 8090
+ARG PB_HOST_PORT=8090
+EXPOSE ${PB_HOST_PORT}
 
 ENTRYPOINT ["/entrypoint.sh"]
