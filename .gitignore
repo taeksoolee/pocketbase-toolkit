@@ -8,3 +8,5 @@ snapshots/*
 
 # macOS
 .DS_Store
+.aider*
+.antigravitycli*
