@@ -13,21 +13,12 @@
 
 ---
 
-## 네트워크 노출 방식 선택
+## 네트워크 노출 방식 (Cloudflare Tunnel)
 
-배포 전 아래 기준으로 네트워크 구성을 선택한다.
-
-| 항목 | Cloudflare Tunnel | Caddy |
-|------|------------------|-------|
-| 공인 IP 필요 여부 | 불필요 | 필요 |
-| 포트 개방 (80/443) | 불필요 | 필요 |
-| HTTPS 인증서 | Cloudflare가 자동 처리 | Let's Encrypt 자동 발급 |
-| DDoS 방어 / WAF | 기본 제공 | 없음 |
-| Cloudflare 계정 필요 | 필요 | 불필요 |
-| 홈서버 / 사설 IP | 가능 | 불가 |
-
-**기본 권장: Cloudflare Tunnel.** 공인 IP 없는 서버, 보안 설정을 단순하게 유지하고 싶은 경우 적합하다.
-**Caddy 선택:** Cloudflare 없이 VPS에 직접 배포하고 싶은 경우.
+이 툴킷은 **Cloudflare Tunnel**을 기반으로 네트워크 노출을 제공합니다.
+* **보안성**: 서버의 인바운드 포트(80/443 등)를 개방하지 않아도 되므로 포트 스캔 등의 공격으로부터 매우 안전합니다.
+* **편의성**: Cloudflare가 SSL(HTTPS) 인증서 관리 및 DDoS 방어를 자동으로 처리해 줍니다.
+* **호환성**: 공인 IP가 없거나 유동 IP 환경, 홈 서버 등 사설 네트워크 하에서도 바로 외부 노출이 가능합니다.
 
 ---
 
@@ -121,11 +112,7 @@ export DEPLOY_PATH=/opt/pocketbase
 ### 실행
 
 ```bash
-# Cloudflare Tunnel 모드
 make deploy
-
-# Caddy 모드
-make deploy-caddy
 ```
 
 ---
@@ -170,16 +157,7 @@ git push origin main
 
 GitHub → Actions 탭에서 실행 결과 확인 가능.
 
-### Caddy 모드로 변경
 
-`.github/workflows/ci-cd.yml`에서 배포 명령을 수정한다:
-
-```yaml
-- name: 배포 실행
-  run: sh scripts/deploy.sh caddy   # cloudflare → caddy
-```
-
----
 
 ## 롤백
 

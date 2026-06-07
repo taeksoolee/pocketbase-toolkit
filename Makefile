@@ -1,8 +1,7 @@
-.PHONY: up down reset reset__danger logs shell prod-up prod-down prod-clean prod-reset prod-reset__danger backup restore upgrade deploy deploy-caddy create-admin make-admin create-account make-account sync-admin up-sync-admin db-snapshot list-admins
+.PHONY: up down reset reset__danger logs shell prod-up prod-down prod-clean prod-reset prod-reset__danger backup restore upgrade deploy create-admin make-admin create-account make-account sync-admin up-sync-admin db-snapshot list-admins
 
 COMPOSE       = docker compose --env-file .env -f compose/docker-compose.yml
 COMPOSE_PROD  = docker compose --env-file .env -f compose/docker-compose.yml -f compose/docker-compose.prod.yml
-COMPOSE_CADDY = docker compose --env-file .env -f compose/docker-compose.yml -f compose/docker-compose.caddy.yml
 
 # ── 로컬 ──────────────────────────────────────────────────────────────────────
 
@@ -52,10 +51,7 @@ prod-reset__danger:
 # ── 배포 ────────────────────────────────────────────────────────────────────────
 
 deploy:
-	@sh scripts/deploy.sh cloudflare
-
-deploy-caddy:
-	@sh scripts/deploy.sh caddy
+	@sh scripts/deploy.sh
 
 # ── 백업 / 복원 / 업그레이드 ────────────────────────────────────────────────────
 

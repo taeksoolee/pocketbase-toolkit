@@ -118,11 +118,6 @@ PocketBase 컨테이너 (${PB_HOST_PORT:-8090})
 - Cloudflare Zero Trust > Networks > Tunnels에서 터널 생성 후 토큰 발급
 - Public Hostname: `example.com` -> Service: `http://pocketbase:${PB_HOST_PORT:-8090}` 설정
 
-### 대안: Caddy
-
-Cloudflare 없이 VPS에 직접 배포할 때 사용한다.
-서버의 공인 IP와 80/443 포트 개방이 필요하다.
-
 ---
 
 ## 빠른 시작
@@ -155,18 +150,7 @@ make deploy
 # https://DOMAIN/_/
 ```
 
-### 프로덕션 (Caddy)
 
-```bash
-cp .env.example .env
-# .env에 런타임 값(DOMAIN, PB_ADMIN_EMAIL, PB_ADMIN_PASSWORD 등) 입력
-export DEPLOY_HOST=server.example.com
-export DEPLOY_USER=ubuntu
-export DEPLOY_PATH=/opt/pocketbase
-# 서버 80/443 포트 개방
-make deploy-caddy
-# https://DOMAIN/_/
-```
 
 ---
 
@@ -226,8 +210,7 @@ main push -> lint + Docker 빌드 검증 -> 자동 배포
 | `make prod-clean` | 프로덕션 컨테이너 종료 + 관련 이미지 제거 (재기동 없음) |
 | `make prod-reset` | 안전 차단 타깃 (실행 시 안내 후 중단) |
 | `make prod-reset__danger` | 프로덕션 완전 초기화 후 재기동 (컨테이너/이미지/볼륨 삭제) |
-| `make deploy` | SSH로 서버 배포 (Cloudflare Tunnel) |
-| `make deploy-caddy` | SSH로 서버 배포 (Caddy) |
+| `make deploy` | SSH로 서버 배포 |
 | `make backup` | 수동 백업 실행 |
 | `make db-snapshot` | 디버깅용 DB 스냅샷 ZIP 생성 (`./snapshots`) |
 | `make restore` | 백업 목록에서 선택하여 복원 |
@@ -350,29 +333,21 @@ pocketbase-toolkit/
 ├── .github/
 │   └── workflows/
 │       └── ci-cd.yml
-├── caddy/
-│   └── Caddyfile
 ├── compose/
-│   ├── docker-compose.caddy.yml
 │   ├── docker-compose.prod.yml
 │   └── docker-compose.yml
 ├── docker/
 │   ├── Dockerfile
-│   ├── Dockerfile.extend
 │   └── entrypoint.sh
 ├── docs/
 │   ├── deployment.md
 │   ├── evaluation.md
 │   ├── manual/
-│   │   ├── caddy.md
 │   │   ├── cloudflare-tunnel.md
 │   │   ├── make.md
 │   │   └── pocketbase.md
 │   ├── plan/
 │   └── test/
-├── extend/
-│   └── main.go
-├── pb_hooks/
 ├── pb_migrations/
 ├── scripts/
 │   ├── backup.sh
@@ -391,20 +366,6 @@ pocketbase-toolkit/
 
 ---
 
-## 커스텀 훅 (JS)
-
-`pb_hooks/*.pb.js` 파일을 추가하면 PocketBase가 자동으로 로드한다. 재시작 불필요.
-
----
-
-## Go 확장 빌드 (선택)
-
-외부 Go 패키지가 필요하거나 JS 훅으로 처리하기 어려운 경우 `extend/main.go`를 수정한 후 `docker/Dockerfile.extend`로 빌드한다.
-
-```bash
-docker build -f docker/Dockerfile.extend --build-arg PB_VERSION=0.22.4 -t pocketbase-custom .
-```
-
 ---
 
 ## 기술 스택
@@ -413,8 +374,7 @@ docker build -f docker/Dockerfile.extend --build-arg PB_VERSION=0.22.4 -t pocket
 |------|------|------|
 | 백엔드 | PocketBase | 단일 바이너리, SQLite, 올인원 |
 | 컨테이너 | Docker + Compose | 표준, 간단 |
-| 외부 노출 (기본) | Cloudflare Tunnel | 포트 개방 불필요, HTTPS 자동 |
-| 외부 노출 (대안) | Caddy | Cloudflare 미사용 시, 공인 IP 필요 |
+| 외부 노출 | Cloudflare Tunnel | 포트 개방 불필요, HTTPS 자동 |
 | 백업 스케줄 | ofelia | Docker-native cron |
 | 배포 | SSH + shell script | 의존성 없음, 단순 |
 | CI/CD | GitHub Actions | 선택 사항 |
@@ -437,10 +397,10 @@ docker build -f docker/Dockerfile.extend --build-arg PB_VERSION=0.22.4 -t pocket
 ---
 
 ## NEXT (TODO)
-[] PB_HOST_PORT 환경 변수가 안 먹히는 문제 - 8090으로 포트 설정해야만 동작하는 문제가 있음 원인 분석 또는 환경 변수 제거 필요
-[] ci-cd 개선 - 현재 ci/cd 동작 안함 - 수동만 가능
-[] 스펙 간소화 - 커스텀 main.go 등 사용 안하도록 수정(docker.extend 사용 안함)
-  - (마이너 버전 호환성 이슈, 단 마이너 버전 업그레이드 시 db 구조가 변경될수 있음 참고)
+
+- [x] 스펙 간소화 (Go/JS 확장 제거 및 기본 이미지 중심 구성)
+- [x] PB_HOST_PORT 환경 변수 버그 수정 (컨테이너 내부 헬스체크 포트 고정)
+- [x] CI/CD 워크플로우 안정화 및 배포 유연성 개선 (ssh-agent 적용 및 DEPLOY_MODE 분리)
 
 ---
 

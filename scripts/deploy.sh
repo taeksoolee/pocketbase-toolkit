@@ -16,9 +16,6 @@ set -a
 . "$ROOT_DIR/.env"
 set +a
 
-# 배포 모드: cloudflare(기본) | caddy
-DEPLOY_MODE="${1:-cloudflare}"
-
 if [ -z "$DEPLOY_HOST" ] || [ -z "$DEPLOY_USER" ]; then
   echo "[deploy] DEPLOY_HOST, DEPLOY_USER 환경변수를 설정하세요."
   exit 1
@@ -27,7 +24,7 @@ fi
 DEPLOY_PATH="${DEPLOY_PATH:-/opt/pocketbase}"
 SSH_TARGET="$DEPLOY_USER@$DEPLOY_HOST"
 
-echo "[deploy] 배포 시작: $SSH_TARGET:$DEPLOY_PATH (mode: $DEPLOY_MODE)"
+echo "[deploy] 배포 시작: $SSH_TARGET:$DEPLOY_PATH"
 
 echo "[deploy] 소스코드 압축 중..."
 # .git이나 .github 같은 불필요한 폴더를 제외하고 하나의 압축파일로 만듭니다.
@@ -62,11 +59,7 @@ fi
 
 # 컨테이너 재시작
 echo "[deploy] 컨테이너 재시작 중..."
-if [ "$DEPLOY_MODE" = "caddy" ]; then
-  COMPOSE_CMD="docker compose -f compose/docker-compose.yml -f compose/docker-compose.caddy.yml"
-else
-  COMPOSE_CMD="docker compose -f compose/docker-compose.yml -f compose/docker-compose.prod.yml"
-fi
+COMPOSE_CMD="docker compose --env-file .env -f compose/docker-compose.yml -f compose/docker-compose.prod.yml"
 
 ssh "$SSH_TARGET" "
   set -e
